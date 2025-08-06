@@ -1,54 +1,84 @@
-async function fetchData() {
-    try {
-        const response = await fetch('app.json');
-        return await response.json();
-    } catch (error) {
-        console.error("Error fetching data:", error);
-        return null;
-    }
-}
+let searchBtn = document.getElementById("searchbtn");
+let clearBtn = document.getElementById("clearbtn");
+let result = document.getElementById("resultContainer");
+let close = document.getElementById("close-btn");
+let mydiv = document.getElementById("dropdown");
+let query = document.getElementById("searchinput");
 
-async function handleSearch(event) {
-    event.preventDefault();
 
-    const data = await fetchData();
-    if (!data) {
-        document.getElementById('result').innerText = 'No results found';
-        return;
-    }
+const clearsearch = () => {
+    query.value = "";
+    mydiv.style.display = "none";
+    console.log("clearing")
+};
 
-    const searchQuery = document.getElementById('destinationInput').value.toLowerCase();
-    let results = '';
+clearBtn.addEventListener("click", clearsearch);
 
-    if (searchQuery == 'temples' || searchQuery == 'temple') {
-        data.temples.forEach(temple => {
-            results += `<div><img src="${temple.imageUrl}" alt="${temple.name}"><h3>${temple.name}</h3><p>${temple.description}</p></div>`;
-            
-        });
-    } else if (searchQuery == 'beaches' || searchQuery == 'beach') {
-        data.beaches.forEach(beach => {
-            results += `<div><img src="${beach.imageUrl}" alt="${beach.name}"><h3>${beach.name}</h3><p>${beach.description}</p></div>`;
-        });
+const showResult = (name, image, info) => {
+    if(mydiv.style.display === "none" || mydiv.style.display === "" ) {
+        mydiv.style.display = "block";
+
     } else {
-        
-        data.countries.forEach(country => {
-            if (country.name.toLowerCase().includes(searchQuery)) {
-                country.cities.forEach(city => {
-                    results += `<img src="${city.imageUrl}" alt="${city.name}"><div><h3>${city.name}</h3><p>${city.description}</p></div>`;
-                });
-            }
-        });
+        mydiv.style.display = "none";
     }
-    document.querySelector('#result').classList.add("result-card");
-    document.getElementById('result').innerHTML = results;
-}
+    result.innerHTML = `
+    <h2 class="title">${name} sssss</h2>
+    <img class="search-img" src=${image} alt="allen">
+    <p class="description">${info}</p>
+  `;
 
-function clearResults() {
-    document.getElementById('destinationInput').value = '';
-    document.getElementById('result').innerHTML = '';
-}
+};
 
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('btnSearch').addEventListener('click', handleSearch);
-    document.getElementById('btnClear').addEventListener('click', clearResults);
-});
+const closeDropdown = () => {
+    mydiv.style = "none";
+    query.value = "";
+};
+
+close.addEventListener("click", closeDropdown);
+
+const searchError = () => {
+    if(mydiv.style.display === "none" || mydiv.style.display === "") {
+        mydiv.style.display = "block";
+    } else {
+        mydiv.style.display = "none";
+    }
+
+    result.innerHTML = `<p class="notfound">Sorry we can't find your search</>`;
+};
+
+fetch("recommendation_api.json")
+    .then((response) => response.json())
+    .then((data) => {
+        const search = () => {
+            let searchQuery = query.value.toLowerCase();
+            let notfound = true;
+
+            data.countries.map((country) => {
+                country.cities.map((city) => {
+                    if (city.name.toLowerCase().includes(searchQuery)) {
+                        showResult(city.name, city.imageUrl, city.description);
+                        notfound = false;
+                    }
+                })
+            });
+            
+            data.temples.map((temple) => {
+                if(temple.name.toLowerCase().includes(searchQuery)) {
+                    showResult(temple.name, temple.imageUrl, temple.description)
+                    notfound = false;
+                }
+            });
+
+            data.beaches.map((beach) => {
+                if(beach.name.toLowerCase().includes(searchQuery)) {
+                    showResult(beach.name, beach.imageUrl, beach.description)
+                    notfound = false;
+                }
+            })
+
+            if(notfound) {
+                searchError();
+            }
+        };
+        searchBtn.addEventListener("click", search)
+    });
